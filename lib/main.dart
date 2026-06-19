@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 void main() {
   runApp(const CalculatorApp());
@@ -164,7 +165,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           result = sinVal / cosVal;
           break;
         case "√":
-          result = value < 0 ? 0 : value.sqrt();
+          result = value < 0 ? 0 : sqrt(value);
           break;
         case "x²":
           result = value * value;
@@ -176,10 +177,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           result = value == 0 ? 0 : 1 / value;
           break;
         case "log":
-          result = value <= 0 ? 0 : (value).log10();
+          result = value <= 0 ? 0 : log10(value);
           break;
         case "ln":
-          result = value <= 0 ? 0 : (value).log();
+          result = value <= 0 ? 0 : log(value);
           break;
       }
 
