@@ -177,7 +177,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           result = value == 0 ? 0 : 1 / value;
           break;
         case "log":
-          result = value <= 0 ? 0 : log10(value);
+          result = value <= 0 ? 0 : log(value) / log(10);
           break;
         case "ln":
           result = value <= 0 ? 0 : log(value);
