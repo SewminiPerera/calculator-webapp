@@ -34,7 +34,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String _operation = "";
   double _firstValue = 0;
   bool _shouldResetDisplay = false;
-  bool _showHistory = false;
+  bool _showHistory = true;
+  bool _isScientific = false;
   final List<String> _history = [];
 
   void _onNumberPressed(String value) {
@@ -138,6 +139,61 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
 
+  void _onScientificFunction(String function) {
+    setState(() {
+      double value = double.tryParse(_input) ?? 0;
+      double result = 0;
+
+      switch (function) {
+        case "sin":
+          result = (value * 3.14159265359 / 180);
+          result = (result - result * result * result / 6 +
+              result * result * result * result * result / 120);
+          break;
+        case "cos":
+          result = (value * 3.14159265359 / 180);
+          result = (1 - result * result / 2 +
+              result * result * result * result / 24);
+          break;
+        case "tan":
+          result = (value * 3.14159265359 / 180);
+          double sinVal = (result - result * result * result / 6 +
+              result * result * result * result * result / 120);
+          double cosVal = (1 - result * result / 2 +
+              result * result * result * result / 24);
+          result = sinVal / cosVal;
+          break;
+        case "√":
+          result = value < 0 ? 0 : value.sqrt();
+          break;
+        case "x²":
+          result = value * value;
+          break;
+        case "x³":
+          result = value * value * value;
+          break;
+        case "1/x":
+          result = value == 0 ? 0 : 1 / value;
+          break;
+        case "log":
+          result = value <= 0 ? 0 : (value).log10();
+          break;
+        case "ln":
+          result = value <= 0 ? 0 : (value).log();
+          break;
+      }
+
+      String resultStr = result % 1 == 0
+          ? result.toInt().toString()
+          : result.toStringAsFixed(8)
+              .replaceAll(RegExp(r'0*$'), '')
+              .replaceAll(RegExp(r'\.$'), '');
+
+      _input = resultStr;
+      _shouldResetDisplay = true;
+    });
+  }
+
   Widget _buildButton(String text, VoidCallback onPressed, {Color? color}) {
     return Expanded(
       child: Padding(
@@ -168,166 +224,345 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Display Area
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2C2C2C),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Equation line
-                      Text(
-                        _operation.isEmpty
-                            ? ""
-                            : "$_firstValue $_operation ${_shouldResetDisplay ? "" : _input}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Colors.grey,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _input,
-                        style: const TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // History Toggle and Display Area
-            if (_showHistory && _history.isNotEmpty)
-              Container(
-                height: 80,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ListView.builder(
-                  reverse: true,
-                  itemCount: _history.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      _history[index],
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                ),
-              ),
-            // History Toggle Button
+            // Top Bar with History and Scientific Calculator Buttons
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showHistory = !_showHistory;
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
-                  foregroundColor: Colors.white,
-                ),
-                icon: Icon(_showHistory ? Icons.expand_less : Icons.expand_more),
-                label: Text(_showHistory ? "Hide History" : "Show History"),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // History Button (Top Left)
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _showHistory = !_showHistory;
+                      });
+                    },
+                    icon: const Icon(Icons.history),
+                    color: Colors.orange,
+                    tooltip: "History",
+                  ),
+                  // Scientific Calculator Button (Top Right)
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _isScientific = !_isScientific;
+                      });
+                    },
+                    icon: const Icon(Icons.calculate),
+                    color: _isScientific ? Colors.orange : Colors.grey,
+                    tooltip: "Scientific Calculator",
+                  ),
+                ],
               ),
             ),
-            // Buttons Area
+            const Divider(color: Colors.grey, height: 1),
+            // Main Content Area
             Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildButton("AC", _onClear, color: Colors.orange),
-                        _buildButton("⌫", _onBackspace, color: Colors.orange),
-                        _buildButton("%", _onPercent, color: Colors.orange),
-                        _buildButton("÷", () => _onOperationPressed("÷"),
-                            color: Colors.orange),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        _buildButton("7", () => _onNumberPressed("7")),
-                        _buildButton("8", () => _onNumberPressed("8")),
-                        _buildButton("9", () => _onNumberPressed("9")),
-                        _buildButton("×", () => _onOperationPressed("×"),
-                            color: Colors.orange),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        _buildButton("4", () => _onNumberPressed("4")),
-                        _buildButton("5", () => _onNumberPressed("5")),
-                        _buildButton("6", () => _onNumberPressed("6")),
-                        _buildButton("-", () => _onOperationPressed("-"),
-                            color: Colors.orange),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        _buildButton("1", () => _onNumberPressed("1")),
-                        _buildButton("2", () => _onNumberPressed("2")),
-                        _buildButton("3", () => _onNumberPressed("3")),
-                        _buildButton("+", () => _onOperationPressed("+"),
-                            color: Colors.orange),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ElevatedButton(
-                              onPressed: () => _onNumberPressed("0"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF424242),
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 20),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+              child: Row(
+                children: [
+                  // History Panel (Left Side)
+                  if (_showHistory)
+                    Container(
+                      width: 120,
+                      color: const Color(0xFF252525),
+                      child: Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text(
+                              "History",
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: const Text(
-                                "0",
-                                style: TextStyle(
-                                    fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const Divider(color: Colors.grey, height: 1),
+                          Expanded(
+                            child: _history.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      "No history",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    reverse: true,
+                                    itemCount: _history.length,
+                                    itemBuilder: (context, index) =>
+                                        GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _input = _history[index]
+                                              .split("=")[1]
+                                              .trim();
+                                          _shouldResetDisplay = true;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey[800]!,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _history[index],
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 10,
+                                          ),
+                                          maxLines: 3,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Calculator Area (Right Side)
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Display Area
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2C2C2C),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Equation line
+                                  Text(
+                                    _operation.isEmpty
+                                        ? ""
+                                        : "$_firstValue $_operation ${_shouldResetDisplay ? "" : _input}",
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _input,
+                                    style: const TextStyle(
+                                      fontSize: 48,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ),
-                        _buildButton(".", () => _onNumberPressed(".")),
-                        _buildButton("=", _onEqual, color: Colors.orange),
+                        // Buttons Area
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            child: _isScientific
+                                ? _buildScientificCalculator()
+                                : _buildBasicCalculator(),
+                          ),
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBasicCalculator() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _buildButton("AC", _onClear, color: Colors.orange),
+            _buildButton("⌫", _onBackspace, color: Colors.orange),
+            _buildButton("%", _onPercent, color: Colors.orange),
+            _buildButton("÷", () => _onOperationPressed("÷"),
+                color: Colors.orange),
+          ],
+        ),
+        Row(
+          children: [
+            _buildButton("7", () => _onNumberPressed("7")),
+            _buildButton("8", () => _onNumberPressed("8")),
+            _buildButton("9", () => _onNumberPressed("9")),
+            _buildButton("×", () => _onOperationPressed("×"),
+                color: Colors.orange),
+          ],
+        ),
+        Row(
+          children: [
+            _buildButton("4", () => _onNumberPressed("4")),
+            _buildButton("5", () => _onNumberPressed("5")),
+            _buildButton("6", () => _onNumberPressed("6")),
+            _buildButton("-", () => _onOperationPressed("-"),
+                color: Colors.orange),
+          ],
+        ),
+        Row(
+          children: [
+            _buildButton("1", () => _onNumberPressed("1")),
+            _buildButton("2", () => _onNumberPressed("2")),
+            _buildButton("3", () => _onNumberPressed("3")),
+            _buildButton("+", () => _onOperationPressed("+"),
+                color: Colors.orange),
+          ],
+        ),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () => _onNumberPressed("0"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF424242),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "0",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            _buildButton(".", () => _onNumberPressed(".")),
+            _buildButton("=", _onEqual, color: Colors.orange),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScientificCalculator() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildButton("AC", _onClear, color: Colors.orange),
+              _buildButton("⌫", _onBackspace, color: Colors.orange),
+              _buildButton("%", _onPercent, color: Colors.orange),
+              _buildButton("÷", () => _onOperationPressed("÷"),
+                  color: Colors.orange),
+            ],
+          ),
+          Row(
+            children: [
+              _buildButton("sin", () => _onScientificFunction("sin"),
+                  color: Colors.purple),
+              _buildButton("cos", () => _onScientificFunction("cos"),
+                  color: Colors.purple),
+              _buildButton("tan", () => _onScientificFunction("tan"),
+                  color: Colors.purple),
+              _buildButton("√", () => _onScientificFunction("√"),
+                  color: Colors.purple),
+            ],
+          ),
+          Row(
+            children: [
+              _buildButton("x²", () => _onScientificFunction("x²"),
+                  color: Colors.purple),
+              _buildButton("x³", () => _onScientificFunction("x³"),
+                  color: Colors.purple),
+              _buildButton("log", () => _onScientificFunction("log"),
+                  color: Colors.purple),
+              _buildButton("ln", () => _onScientificFunction("ln"),
+                  color: Colors.purple),
+            ],
+          ),
+          Row(
+            children: [
+              _buildButton("1/x", () => _onScientificFunction("1/x"),
+                  color: Colors.purple),
+              _buildButton("7", () => _onNumberPressed("7")),
+              _buildButton("8", () => _onNumberPressed("8")),
+              _buildButton("9", () => _onNumberPressed("9")),
+              _buildButton("×", () => _onOperationPressed("×"),
+                  color: Colors.orange),
+            ],
+          ),
+          Row(
+            children: [
+              _buildButton("π", () => _onNumberPressed("3.14159"),
+                  color: Colors.purple),
+              _buildButton("4", () => _onNumberPressed("4")),
+              _buildButton("5", () => _onNumberPressed("5")),
+              _buildButton("6", () => _onNumberPressed("6")),
+              _buildButton("-", () => _onOperationPressed("-"),
+                  color: Colors.orange),
+            ],
+          ),
+          Row(
+            children: [
+              _buildButton("e", () => _onNumberPressed("2.71828"),
+                  color: Colors.purple),
+              _buildButton("1", () => _onNumberPressed("1")),
+              _buildButton("2", () => _onNumberPressed("2")),
+              _buildButton("3", () => _onNumberPressed("3")),
+              _buildButton("+", () => _onOperationPressed("+"),
+                  color: Colors.orange),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    onPressed: () => _onNumberPressed("0"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF424242),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "0",
+                      style: TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+              _buildButton(".", () => _onNumberPressed(".")),
+              _buildButton("=", _onEqual, color: Colors.orange),
+            ],
+          ),
+        ],
       ),
     );
   }
